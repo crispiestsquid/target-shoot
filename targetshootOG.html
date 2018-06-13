@@ -1,0 +1,258 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Target Shoot</title>
+<script type="text/javascript">
+var p;
+var ctx;
+var canvasWidth;
+var canvasHeight;
+var animate = true;
+var gun = new Audio("gun.mp3");
+var numTargets;
+var targets = [];
+var cursor = {
+	color: "#000000",
+	x: 0,
+	y: 0,
+	width: 10,
+	height: 10,
+	r: 20,
+	update: function(mouseX, mouseY) {
+		this.x = mouseX;
+		this.y = mouseY;
+	},
+	draw: function() {
+		ctx.strokeStyle = this.color;
+		ctx.lineWidth = 2.5;
+		ctx.beginPath();
+		ctx.moveTo(this.x - this.width, this.y);
+		ctx.lineTo(this.x + this.width, this.y);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.moveTo(this.x, this.y - this.height);
+		ctx.lineTo(this.x, this.y + this.height);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI, false);
+		ctx.stroke();	
+	}
+}
+function Target (color, color2, x, y, vx, vy, r) {
+	this.color = color;
+	this.color2 = color2;
+	this.x = x;
+	this.y = y;
+	this.vx = vx;
+	this.vy = vy;
+	this.r = r;
+	this.offCanvas = function() {
+		var offCanvas;
+		if (this.x - this.r > canvasWidth
+		|| this.y - this.r > canvasHeight)
+		{
+			offCanvas = true;
+			return(offCanvas);
+		}
+		else
+		{
+			offCanvas = false;
+			return(offCanvas);
+		}
+	}
+	this.update = function() {
+		this.x += this.vx;
+		this.y += this.vy;
+		this.draw();
+	}
+	this.draw = function() {
+		// draw initial circle with color 2
+		ctx.beginPath();
+		ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI, false);
+		ctx.fillStyle = this.color2;
+		ctx.fill();
+		ctx.lineWidth = 2;// add a stroke to initial circle for outer ring
+		ctx.strokeStyle = "#000000";// use black to outline
+		ctx.stroke();
+		// draw second circle 20% smaller with color 1 and no stroke
+		ctx.beginPath();
+		ctx.arc(this.x, this.y, this.r * .80, 0, 2 * Math.PI, false);
+		ctx.fillStyle = this.color;
+		ctx.fill();
+		// draw 3rd circle 20% smaller with color 2 and no stroke
+		ctx.beginPath();
+		ctx.arc(this.x, this.y, this.r * .60, 0, 2 * Math.PI, false);
+		ctx.fillStyle = this.color2;
+		ctx.fill();
+		// draw fourth circle 20% smaller with color 1 and no stroke
+		ctx.beginPath();
+		ctx.arc(this.x, this.y, this.r * .40, 0, 2 * Math.PI, false);
+		ctx.fillStyle = this.color;
+		ctx.fill();
+		// draw final circle 20% smaller with color 2 and no stroke
+		ctx.beginPath();
+		ctx.arc(this.x, this.y, this.r * .20, 0, 2 * Math.PI, false);
+		ctx.fillStyle = this.color2;
+		ctx.fill();
+	}
+};
+
+window.onkeydown = function(){onKeyDown()};
+window.onkeyup = function(){onKeyUp()};
+
+function onLoad()
+{
+	document.getElementById("myCanvas").style.cursor = "none";// hide mouse cursor over canvas
+	canvasWidth = document.getElementById("myCanvas").width;// get canvas width
+	canvasHeight = document.getElementById("myCanvas").height;// get canvas height
+	ctx = document.getElementById("myCanvas").getContext("2d");
+	p = document.getElementById("text");
+	numTargets = 5;
+	createTargets(numTargets);
+	window.requestAnimationFrame(update);
+}
+
+function createTargets(numTargets)
+{
+	for (var i = 0; i < numTargets; i++)
+	{
+		// set up variables for color and radius
+		var c1 = "#ff0000";// set color 1
+		var c2 = "#ffffff";// set color 2
+		var r = 40;// set radius
+		
+		// variables for placing targets
+		var maxX = 0 - r;// set max x location
+		var minX = 0 - r;// set min x location
+		var maxY = canvasHeight - r;// set max y location
+		var minY = 0 + r;// set min y location
+		
+		var maxVX = 8;// set max vx
+		var minVX = 3;// set min vx
+		var maxVY = 0;// set max vy
+		var minVY = 0;// set min vy
+		
+		// set the x and y based on a rand num between max and min
+		var x = Math.floor(Math.random() * (maxX - minX + 1) + minX);// set x
+		var y = Math.floor(Math.random() * (maxY - minY + 1) + minY);// set y
+		
+		// set the velocity of x and y based on rand num between max and min
+		var vx = Math.floor(Math.random() * (maxVX - minVX + 1) + minVX);// set vx
+		var vy = Math.floor(Math.random() * (maxVY - minVY + 1) + minVY);// set vy
+		
+		// create the target with the randomly generated properties
+		var target = new Target(c1, c2, x, y, vx, vy, r);
+		targets.push(target);// add created target to the array
+	}
+}
+
+function onMove()
+{
+	// use the getMousePos function to get the coordinates of the mouse relative to the canvas
+	var pos = getMousePos(document.getElementById("myCanvas"), event);
+	cursor.update(pos.x, pos.y);// update the cursor to the mouse position
+}
+
+function getMousePos(canvas, e)
+{
+	var x;
+	var y;
+	
+	if (e.layerX || e.layerX == 0)
+	{
+		return {
+			x: e.layerX - canvas.offsetLeft,
+			y: e.layerY - canvas.offsetTop
+		};
+	}
+	else if (e.offsetX || e.offsetX == 0)
+	{
+		return {
+			x: e.offsetX,
+			y: e.offsetY
+		};
+	}
+}
+
+function onClick()
+{
+	if (animate)
+	{
+		// play the gun sound effect
+		gun.play();
+		gun.currentTime = 0;// set the current time to 0 when finished playing to enable sound to play every click
+		
+		// use the getMousePos function to get the coordinates of the mouse relative to the canvas
+		var pos = getMousePos(document.getElementById("myCanvas"), event);
+		// loop through targets backwards to ensure the click registers on upper most target
+		for (var i = targets.length - 1; i >= 0; i--)
+		{
+			// use the checkHit function to see if the mouse clicked within the targets radius
+			if (checkHit(pos.x, pos.y, targets[i].x, targets[i].y, targets[i].r))
+			{
+				targets[i] = null;// set clicked target to null
+				targets.splice(i, 1);// remove clicked target from array
+			}
+		}
+	}
+}
+
+function checkHit(mouseX, mouseY, targetX, targetY, targetR)
+{
+	var distX = mouseX - targetX;
+	var distY = mouseY - targetY;
+	return distX * distX + distY * distY <= targetR * targetR;	
+}
+
+function onKeyDown()
+{
+}
+
+function onKeyUp()
+{
+	 switch (event.keyCode)
+	 {
+		case 83: //s
+			document.getElementById("myCanvas").style.cursor = "default";// show mouse
+			animate = false;
+			break;
+		case 68: //d
+			document.getElementById("myCanvas").style.cursor = "none";// hide mouse
+			animate = true;
+			window.requestAnimationFrame(update);
+			break;
+		default:
+			break;
+	 }	
+}
+
+function update()
+{
+	if (animate)
+	{
+		ctx.clearRect(0, 0, canvasWidth, canvasHeight);// clear the canvas
+		// loop through all targets
+		for (var i = 0; i < targets.length; i++)
+		{
+			targets[i].update();// update target at current position
+			// check if target is off canvas
+			if (targets[i].offCanvas())
+			{
+				targets[i] = null;// set target to null
+				targets.splice(i, 1);// remove target from array
+			}
+		}
+		cursor.draw();// draw the cursor
+		window.requestAnimationFrame(update);
+	}
+}
+</script>
+</head>
+<body onLoad="onLoad();">
+<div id="content">
+  <canvas id="myCanvas" width="1200" height="800" style="border:solid #000000; background-color:#00CCFF" onMouseMove="onMove();" onClick="onClick();"> </canvas>
+</div>
+<p id="text"> </p>
+</body>
+</html>
